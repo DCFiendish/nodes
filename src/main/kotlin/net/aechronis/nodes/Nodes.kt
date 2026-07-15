@@ -1032,10 +1032,14 @@ object Nodes {
             town.color = color
         }
 
-        // add permission flags
-        for ((type, groups) in permissions) {
-            town.permissions[type].clear()
-            town.permissions[type].addAll(groups)
+        // add permission flags, or apply configured defaults when none were saved
+        if (permissions.values.any { it.isNotEmpty() }) {
+            for ((type, groups) in permissions) {
+                town.permissions[type].clear()
+                town.permissions[type].addAll(groups)
+            }
+        } else {
+            applyDefaultTownPermissions(town)
         }
 
         // add protected blocks
@@ -1181,7 +1185,19 @@ object Nodes {
         permission: TownPermissions,
         allowed: Boolean?,
     ) {
-        plot.setGroupPermission(group, permission, allowed)
+        setPlotGroupPermissions(town, plot, group, listOf(permission), allowed)
+    }
+
+    fun setPlotGroupPermissions(
+        town: Town,
+        plot: Plot,
+        group: PermissionsGroup,
+        permissions: Iterable<TownPermissions>,
+        allowed: Boolean?,
+    ) {
+        for (permission in permissions) {
+            plot.setGroupPermission(group, permission, allowed)
+        }
         town.needsUpdate()
         needsSave = true
     }
@@ -1193,7 +1209,19 @@ object Nodes {
         permission: TownPermissions,
         allowed: Boolean?,
     ) {
-        plot.setPlayerPermission(player.uuid, permission, allowed)
+        setPlotPlayerPermissions(town, plot, player, listOf(permission), allowed)
+    }
+
+    fun setPlotPlayerPermissions(
+        town: Town,
+        plot: Plot,
+        player: Resident,
+        permissions: Iterable<TownPermissions>,
+        allowed: Boolean?,
+    ) {
+        for (permission in permissions) {
+            plot.setPlayerPermission(player.uuid, permission, allowed)
+        }
         town.needsUpdate()
         needsSave = true
     }
@@ -1510,15 +1538,29 @@ object Nodes {
      * Set town permissions
      */
     fun setTownPermissions(town: Town, perm: TownPermissions, group: PermissionsGroup, flag: Boolean) {
+        setTownPermissions(town, listOf(perm), group, flag)
+    }
+
+    fun setTownPermissions(town: Town, permissions: Iterable<TownPermissions>, group: PermissionsGroup, flag: Boolean) {
         // add perms
-        if (flag) {
-            town.permissions[perm].add(group)
-        } else { // remove perms
-            town.permissions[perm].remove(group)
+        for (permission in permissions) {
+            if (flag) {
+                town.permissions[permission].add(group)
+            } else { // remove perms
+                town.permissions[permission].remove(group)
+            }
         }
 
         town.needsUpdate()
         needsSave = true
+    }
+
+    private fun applyDefaultTownPermissions(town: Town) {
+        for (permission in enumValues<TownPermissions>()) {
+            town.permissions[permission].clear()
+            town.permissions[permission].addAll(config.defaultTownPermissions[permission].orEmpty())
+        }
+        town.needsUpdate()
     }
 
     /**

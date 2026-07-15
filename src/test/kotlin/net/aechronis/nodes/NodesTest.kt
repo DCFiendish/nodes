@@ -1,5 +1,9 @@
 package net.aechronis.nodes
 
+import net.aechronis.nodes.constants.PermissionsGroup
+import net.aechronis.nodes.constants.TownPermissions
+import net.aechronis.nodes.objects.Plot
+import net.aechronis.nodes.objects.Resident
 import net.aechronis.nodes.objects.TerritoryId
 import net.kyori.adventure.bossbar.BossBar
 import net.kyori.adventure.text.Component
@@ -19,6 +23,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Comparator
+import java.util.UUID
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.test.assertEquals
@@ -101,6 +106,7 @@ class NodesTest {
         // create test config
         val config = NodesConfig(
             path = tmpDir.toString(),
+            defaultTownPermissions = enumValues<TownPermissions>().associateWith { setOf(PermissionsGroup.OUTSIDER) },
         )
 
         // initialize nodes with test config
@@ -134,6 +140,66 @@ class NodesTest {
         val town = Nodes.getTownFromName("Birmingham")
         assertNotNull(town)
         assertEquals("Birmingham", town.name)
+        for (permission in enumValues<TownPermissions>()) {
+            assertEquals(setOf(PermissionsGroup.TOWN), town.permissions[permission])
+        }
+    }
+
+    @Test
+    fun `empty town permissions use configured defaults`() {
+        val territory = Nodes.territories.values.first { it.town == null }
+        val town = Nodes.loadTown(
+            UUID.randomUUID(),
+            "EmptyDefaults",
+            null,
+            territory.id.toInt(),
+            null,
+            null,
+            arrayListOf(),
+            arrayListOf(),
+            arrayListOf(territory.id.toInt()),
+            arrayListOf(),
+            arrayListOf(),
+            mutableMapOf(),
+            permissions = mutableMapOf(),
+            protectedBlocks = hashSetOf(),
+            plots = arrayListOf(),
+        )
+
+        assertNotNull(town)
+        for (permission in enumValues<TownPermissions>()) {
+            assertEquals(setOf(PermissionsGroup.OUTSIDER), town.permissions[permission])
+        }
+    }
+
+    @Test
+    fun `all permission updates apply to town and plots`() {
+        val territory = Nodes.territories.values.first { it.town == null }
+        val town = Nodes.createTown("BulkPermissions", territory, null).getOrThrow()
+        val allPermissions = enumValues<TownPermissions>().toList()
+
+        Nodes.setTownPermissions(town, allPermissions, PermissionsGroup.OUTSIDER, true)
+        for (permission in allPermissions) {
+            assertTrue(town.permissions[permission].contains(PermissionsGroup.OUTSIDER))
+        }
+
+        val core = territory.core
+        val plot = Nodes.createPlot(
+            town,
+            "all",
+            Plot.BlockVec3(core.x * 16, 0, core.z * 16),
+            Plot.BlockVec3(core.x * 16, 0, core.z * 16),
+        ).getOrThrow()
+        Nodes.setPlotGroupPermissions(town, plot, PermissionsGroup.OUTSIDER, allPermissions, false)
+        for (permission in allPermissions) {
+            assertEquals(false, plot.groupPermission(PermissionsGroup.OUTSIDER, permission))
+        }
+
+        val resident = Resident(UUID.randomUUID(), "plot-player")
+        Nodes.setPlotPlayerPermissions(town, plot, resident, allPermissions, true)
+        for (permission in allPermissions) {
+            assertEquals(true, plot.playerPermission(resident.uuid, permission))
+        }
     }
 
     @Test

@@ -8,6 +8,8 @@
 
 package net.aechronis.nodes
 
+import net.aechronis.nodes.constants.PermissionsGroup
+import net.aechronis.nodes.constants.TownPermissions
 import net.aechronis.nodes.objects.TerritoryResources
 import net.minestom.server.instance.block.Block
 import java.nio.file.Path
@@ -187,6 +189,10 @@ data class NodesConfig(
     // port configs
     // ===================================
     val portWarpTime: Long = 10000,
+
+    // default allowed groups for each town permission
+    val defaultTownPermissions: Map<TownPermissions, Set<PermissionsGroup>> =
+        enumValues<TownPermissions>().associateWith { setOf(PermissionsGroup.TOWN) },
 ) {
     // folder for backups of json state files
     val pathBackup: Path get() = Paths.get(path, "backup").normalize()

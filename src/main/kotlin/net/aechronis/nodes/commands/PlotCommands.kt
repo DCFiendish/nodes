@@ -112,8 +112,8 @@ class TownPlotPermissionsCommand : NodesCommand("permissions", "perms") {
         val flagArg = plotFlagArgument()
 
         setDefaultExecutor { player, _, _ ->
-            Message.print(player, "Usage: /town plot permissions <plot> <group> <action> <allow|deny|inherit>")
-            Message.print(player, "Usage: /town plot permissions <plot> player <player> <action> <allow|deny|inherit>")
+            Message.print(player, "Usage: /town plot permissions <plot> <group> <action|all> <allow|deny|inherit>")
+            Message.print(player, "Usage: /town plot permissions <plot> player <player> <action|all> <allow|deny|inherit>")
         }
 
         addSyntax({ player, resident, town, context ->
@@ -260,14 +260,14 @@ private fun setGroupPlotPermission(
     }
     val plot = town.plots[plotName]
     val group = parseGroup(groupName)
-    val permission = parsePlotPermission(permissionName)
+    val permissions = parsePlotPermissions(permissionName)
     val flag = parsePlotFlag(flagName)
-    if (plot == null || group == null || permission == null) {
+    if (plot == null || group == null || permissions == null) {
         Message.error(player, "Invalid plot, group, action, or flag")
         return
     }
-    Nodes.setPlotGroupPermission(town, plot, group, permission, flag)
-    Message.print(player, "Updated ${town.name}/$plotName permission: $group $permission $flagName")
+    Nodes.setPlotGroupPermissions(town, plot, group, permissions, flag)
+    Message.print(player, "Updated ${town.name}/$plotName permission: $group $permissionName $flagName")
 }
 
 private fun setPlayerPlotPermission(
@@ -284,14 +284,14 @@ private fun setPlayerPlotPermission(
         return
     }
     val plot = town.plots[plotName]
-    val permission = parsePlotPermission(permissionName)
+    val permissions = parsePlotPermissions(permissionName)
     val flag = parsePlotFlag(flagName)
-    if (plot == null || permission == null) {
+    if (plot == null || permissions == null) {
         Message.error(player, "Invalid plot, action, or flag")
         return
     }
-    Nodes.setPlotPlayerPermission(town, plot, target, permission, flag)
-    Message.print(player, "Updated ${town.name}/$plotName permission for ${target.name}: $permission $flagName")
+    Nodes.setPlotPlayerPermissions(town, plot, target, permissions, flag)
+    Message.print(player, "Updated ${town.name}/$plotName permission for ${target.name}: $permissionName $flagName")
 }
 
 private fun parseGroup(value: String): PermissionsGroup? = when (value.lowercase()) {
@@ -303,13 +303,14 @@ private fun parseGroup(value: String): PermissionsGroup? = when (value.lowercase
     else -> null
 }
 
-private fun parsePlotPermission(value: String): TownPermissions? = when (value.lowercase()) {
-    "build" -> TownPermissions.BUILD
-    "break", "destroy" -> TownPermissions.DESTROY
-    "interact" -> TownPermissions.INTERACT
-    "chests" -> TownPermissions.CHESTS
-    "items" -> TownPermissions.USE_ITEMS
-    "income" -> TownPermissions.INCOME
+private fun parsePlotPermissions(value: String): List<TownPermissions>? = when (value.lowercase()) {
+    "all" -> enumValues<TownPermissions>().toList()
+    "build" -> listOf(TownPermissions.BUILD)
+    "break", "destroy" -> listOf(TownPermissions.DESTROY)
+    "interact" -> listOf(TownPermissions.INTERACT)
+    "chests" -> listOf(TownPermissions.CHESTS)
+    "items" -> listOf(TownPermissions.USE_ITEMS)
+    "income" -> listOf(TownPermissions.INCOME)
     else -> null
 }
 
@@ -320,7 +321,7 @@ private fun parsePlotFlag(value: String): Boolean? = when (value.lowercase()) {
     else -> null
 }
 
-private fun plotPermissionArgument() = ArgumentType.Word("action").from("build", "break", "destroy", "interact", "chests", "items", "income")
+private fun plotPermissionArgument() = ArgumentType.Word("action").from("all", "build", "break", "destroy", "interact", "chests", "items", "income")
 
 private fun plotFlagArgument() = ArgumentType.Word("flag").from("allow", "deny", "inherit")
 

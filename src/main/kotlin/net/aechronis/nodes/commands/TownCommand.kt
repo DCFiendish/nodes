@@ -860,10 +860,10 @@ class TownPermissionsCommand : NodesCommand("permissions", "perms") {
         setDefaultExecutor { player, resident, context ->
             Message.print(player, "Usage:")
             Message.print(player, "/town permissions")
-            Message.print(player, "/town permissions <type> <group> <flag>")
+            Message.print(player, "/town permissions <type|all> <group> <flag>")
         }
 
-        val typeArg = ArgumentType.Word("type").from("build", "destroy", "interact", "chests", "items", "income")
+        val typeArg = ArgumentType.Word("type").from("all", "build", "destroy", "interact", "chests", "items", "income")
         val groupArg = ArgumentType.Word("group").from("town", "nation", "ally", "outsider", "trusted")
         val flagArg = ArgumentType.Word("flag").from("allow", "deny")
 
@@ -879,7 +879,7 @@ class TownPermissionsCommand : NodesCommand("permissions", "perms") {
             if (resident === town.leader || town.officers.contains(resident)) {
                 Message.print(player, "Usage:")
                 Message.print(player, "/town permissions")
-                Message.print(player, "/town permissions <type> <group> <flag>")
+                Message.print(player, "/town permissions <type|all> <group> <flag>")
             }
         })
 
@@ -890,15 +890,16 @@ class TownPermissionsCommand : NodesCommand("permissions", "perms") {
             }
 
             // match permissions and group
-            val permissions: TownPermissions = when (context[typeArg].lowercase()) {
-                "build" -> TownPermissions.BUILD
-                "destroy" -> TownPermissions.DESTROY
-                "interact" -> TownPermissions.INTERACT
-                "chests" -> TownPermissions.CHESTS
-                "items" -> TownPermissions.USE_ITEMS
-                "income" -> TownPermissions.INCOME
+            val permissions: List<TownPermissions> = when (context[typeArg].lowercase()) {
+                "all" -> enumValues<TownPermissions>().toList()
+                "build" -> listOf(TownPermissions.BUILD)
+                "destroy" -> listOf(TownPermissions.DESTROY)
+                "interact" -> listOf(TownPermissions.INTERACT)
+                "chests" -> listOf(TownPermissions.CHESTS)
+                "items" -> listOf(TownPermissions.USE_ITEMS)
+                "income" -> listOf(TownPermissions.INCOME)
                 else -> {
-                    Message.error(player, "Invalid permissions type ${context[typeArg]}. Valid options: build, destroy, interact, items, income")
+                    Message.error(player, "Invalid permissions type ${context[typeArg]}. Valid options: all, build, destroy, interact, chests, items, income")
                     return@addSyntax
                 }
             }
