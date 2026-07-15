@@ -38,7 +38,7 @@ class PortListCommand : NodesCommand("list") {
 
         addSyntax({ player, resident, context ->
             Message.print(player, "${ChatColor.BOLD}List of ports:")
-            for (port in Port.all) {
+            for (port in Nodes.buildings.asSequence().filterIsInstance<Port>()) {
                 val status = if (port.isPublic) "(public)" else "(owned)"
                 Message.print(player, "- ${port.name} ${ChatColor.GRAY}T${port.tier} $status")
             }
@@ -118,6 +118,7 @@ class PortWarpCommand : NodesCommand("warp") {
                         DiplomaticRelationship.NATION,
                         DiplomaticRelationship.ALLY,
                         -> true
+
                         else -> false
                     }
 
