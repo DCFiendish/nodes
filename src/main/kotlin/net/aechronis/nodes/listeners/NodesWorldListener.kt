@@ -13,6 +13,7 @@ import net.aechronis.nodes.Nodes
 import net.aechronis.nodes.constants.DiplomaticRelationship
 import net.aechronis.nodes.constants.ErrorAlreadyCaptured
 import net.aechronis.nodes.constants.ErrorAlreadyUnderAttack
+import net.aechronis.nodes.constants.ErrorAnnexDisabled
 import net.aechronis.nodes.constants.ErrorChunkNotEdge
 import net.aechronis.nodes.constants.ErrorFlagTooHigh
 import net.aechronis.nodes.constants.ErrorNoTerritory
@@ -55,7 +56,7 @@ object NodesWorldListener {
         val territoryChunk = TerritoryChunk.fromBlock(blockPos.blockX, blockPos.blockZ)
 
         // if war enabled, and chunk is being attacked, do flag checks
-        if (Nodes.war.enabled && territoryChunk?.attacker !== null) {
+        if (FlagWar.enabled && territoryChunk?.attacker !== null) {
             val attack = FlagWar.chunkToAttacker.get(territoryChunk.coord)!!
 
             if (blockInWarFlagNoBuildRegion(blockPos, attack)) {
@@ -166,7 +167,7 @@ object NodesWorldListener {
         val player: Player = event.player
 
         // war specific tasks
-        if (Nodes.war.enabled) {
+        if (FlagWar.enabled) {
             val territoryChunk = TerritoryChunk.fromBlock(blockPos.blockX, blockPos.blockZ)
             if (territoryChunk !== null) {
                 // disable block placement in flag no build distance
@@ -221,6 +222,7 @@ object NodesWorldListener {
                                     )
 
                                     ErrorNotEnemy -> Message.error(player, "[War] Chunk does not belong to an enemy")
+                                    ErrorAnnexDisabled -> Message.error(player, "[War] Territory annexing is disabled")
                                     ErrorNotBorderTerritory -> Message.error(
                                         player,
                                         "[War] You can only attack border territories",
@@ -300,7 +302,7 @@ object NodesWorldListener {
             }
 
             // ignore if war enabled and item in hand is a flag material
-            if (Nodes.war.enabled && Nodes.config.flagBlocks.contains(block)) {
+            if (FlagWar.enabled && Nodes.config.flagBlocks.contains(block)) {
                 return
             }
         }
@@ -491,7 +493,7 @@ private fun hasOccupierPermissions(perms: TownPermissions, town: Town, occupier:
 // bypass permissions and allow all interaction in
 // captured chunks/territories during wartime
 private fun hasWarPermissions(resident: Resident, territory: Territory, territoryChunk: TerritoryChunk): Boolean {
-    if (Nodes.war.enabled) {
+    if (FlagWar.enabled) {
         val residentTown = resident.town
         val territoryTown = territory.town
 

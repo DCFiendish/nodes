@@ -77,7 +77,7 @@ class NodesAdminHelpCommand : NodesCommand("help", "nodes.admin") {
 class NodesAdminWarCommand : NodesCommand("war", "nodes.admin") {
     init {
         setDefaultExecutor { player, resident, context ->
-            Nodes.war.printInfo(player, true)
+            FlagWar.printInfo(player, true)
             Message.print(player, "Toggle state: \"/nodesadmin war [enable|disable|skirmish]\"")
         }
 
@@ -110,7 +110,7 @@ class NodesAdminWarDisableCommand : NodesCommand("disable", "nodes.admin") {
         }
 
         addSyntax({ player, resident, context ->
-            if (Nodes.war.enabled) {
+            if (FlagWar.enabled) {
                 FlagWar.disable()
                 Message.broadcast("${ChatColor.BOLD}Nodes war disabled")
             } else {

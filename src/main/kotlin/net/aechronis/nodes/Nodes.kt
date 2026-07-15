@@ -83,7 +83,7 @@ object Nodes {
     fun initialize(config: NodesConfig = NodesConfig()) {
         val timeStart = System.currentTimeMillis()
         this.config = config
-        war.initialize(config.flagBlocks)
+        FlagWar.initialize(config.flagBlocks)
         println("Loading world from: $config.path")
         try {
             if (loadWorld()) {
@@ -150,7 +150,7 @@ object Nodes {
     internal fun cleanup() {
         residents.values.forEach { it.destroyMinimap() }
         towns.values.forEach { town -> if (town.income.pushToStorage(true)) town.needsUpdate() }
-        if (war.enabled) war.cleanup()
+        if (FlagWar.enabled) FlagWar.cleanup()
         saveWorld(checkIfNeedsSave = false, async = false)
         Files.writeString(config.pathLastBackupTime, System.currentTimeMillis().toString())
     }
@@ -244,7 +244,7 @@ object Nodes {
         residents.values.forEach { it.getSaveState() }
         towns.values.forEach { it.getSaveState() }
         nations.values.forEach { it.getSaveState() }
-        war.load()
+        FlagWar.load()
         if (!Files.exists(config.pathBuildings)) {
             System.err.println("No buildings found: ${config.pathBuildings}")
             return true

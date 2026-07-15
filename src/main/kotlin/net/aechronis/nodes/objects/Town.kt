@@ -283,8 +283,7 @@ class Town(
         }
 
         fun removeResident(town: Town, resident: Resident) {
-            resident.plotSelectionEnabled = false
-            resident.clearPlotSelection()
+            Resident.stopPlotSelection(resident)
             town.officers.remove(resident)
             town.residents.remove(resident)
             resident.town = null

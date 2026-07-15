@@ -17,6 +17,7 @@ import net.aechronis.nodes.objects.Resident
 import net.aechronis.nodes.objects.Territory
 import net.aechronis.nodes.objects.Town
 import net.aechronis.nodes.utils.ChatColor
+import net.aechronis.nodes.war.FlagWar
 import net.minestom.server.MinecraftServer
 import net.minestom.server.command.builder.arguments.ArgumentType
 import net.minestom.server.entity.Player
@@ -592,7 +593,7 @@ class TownLeaveCommand : NodesCommand("leave") {
             }
 
             // do not allow during war?
-            if (!Nodes.config.canLeaveTownDuringWar && Nodes.war.enabled) {
+            if (!Nodes.config.canLeaveTownDuringWar && FlagWar.enabled) {
                 Message.error(player, "Cannot leave your town during war")
                 return@addSyntax
             }
@@ -666,7 +667,7 @@ class TownSpawn : NodesCommand("spawn") {
             var teleportTime = Nodes.config.townSpawnTime.coerceAtLeast(0)
 
             // multiplier during war and if home occupied
-            if (Nodes.war.enabled && Territory.fromId(Nodes.territories, town.home)?.occupier !== null) {
+            if (FlagWar.enabled && Territory.fromId(Nodes.territories, town.home)?.occupier !== null) {
                 Message.error(player, "${ChatColor.BOLD}Your home is occupied, town spawn will take much longer...")
                 teleportTime *= Nodes.config.occupiedHomeTeleportMultiplier
             }
@@ -1064,7 +1065,7 @@ class TownFlyCommand : NodesCommand("fly") {
 
         addSyntax({ player, resident, town, context ->
             // do not allow during war
-            if (Nodes.war.enabled) {
+            if (FlagWar.enabled) {
                 Message.error(player, "Cannot fly during war")
                 return@addSyntax
             }

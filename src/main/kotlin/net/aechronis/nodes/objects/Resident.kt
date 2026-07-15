@@ -88,14 +88,20 @@ class Resident(val uuid: UUID, val name: String) {
         }
 
         internal fun startPlotSelection(resident: Resident) {
-            val player = resident.player() ?: return
+            if (resident.player() == null) return
             resident.plotSelectionEnabled = true
             resident.isProtectingChests = false
             resident.clearPlotSelection()
             var task: Task? = null
             task = MinecraftServer.getSchedulerManager()
                 .buildTask {
-                    if (!resident.plotSelectionEnabled || !player.isOnline) {
+                    if (resident.plotParticleTask !== task) {
+                        task?.cancel()
+                        return@buildTask
+                    }
+                    val player = resident.player()
+                    if (!resident.plotSelectionEnabled || player == null || !player.isOnline) {
+                        if (resident.plotParticleTask === task) resident.plotParticleTask = null
                         task?.cancel()
                         return@buildTask
                     }
@@ -182,8 +188,9 @@ class Resident(val uuid: UUID, val name: String) {
     fun clearPlotSelection() {
         plotCornerOne = null
         plotCornerTwo = null
-        plotParticleTask?.cancel()
+        val task = plotParticleTask
         plotParticleTask = null
+        task?.cancel()
     }
 
     // chat mode config
