@@ -14,6 +14,8 @@ import net.aechronis.nodes.constants.TownPermissions
 import net.aechronis.nodes.objects.Coord
 import net.aechronis.nodes.objects.NodesCommand
 import net.aechronis.nodes.objects.Resident
+import net.aechronis.nodes.objects.Territory
+import net.aechronis.nodes.objects.Town
 import net.aechronis.nodes.utils.ChatColor
 import net.minestom.server.MinecraftServer
 import net.minestom.server.command.builder.arguments.ArgumentType
@@ -192,7 +194,7 @@ class TownPromoteCommand : NodesCommand("promote", null, "officer") {
 
             // add officer
             if (!town.officers.contains(context[playerArg])) {
-                Nodes.townAddOfficer(town, context[playerArg])
+                Town.addOfficer(town, context[playerArg])
                 Message.print(player, "Made ${context[playerArg].name} a town officer")
 
                 if (targetPlayer !== null) {
@@ -235,7 +237,7 @@ class TownDemoteCommand : NodesCommand("demote") {
 
             // remove officer
             if (town.officers.contains(context[playerArg])) {
-                Nodes.townRemoveOfficer(town, context[playerArg])
+                Town.removeOfficer(town, context[playerArg])
                 Message.print(player, "Removed ${context[playerArg].name} from town officers")
 
                 if (targetPlayer !== null) {
@@ -376,7 +378,7 @@ class TownAcceptCommand : NodesCommand("accept") {
                 Message.print(player, "You are now a member of ${resident.invitingTown?.name}! Type \"/t spawn\" to teleport to your new town.")
                 Message.print(resident.invitingPlayer, "${resident.name} has accepted your invitation!")
 
-                Nodes.addResidentToTown(resident.invitingTown!!, resident)
+                Town.addResident(resident.invitingTown!!, resident)
                 resident.invitingTown = null
                 resident.invitingPlayer = null
                 resident.inviteThread = null
@@ -408,7 +410,7 @@ class TownAcceptCommand : NodesCommand("accept") {
                     Message.print(applicantPlayer, "You have been accepted into ${town.name}!")
                 }
 
-                Nodes.addResidentToTown(town, applicant)
+                Town.addResident(town, applicant)
                 town.applications.remove(applicant)
             }
         })
@@ -424,7 +426,7 @@ class TownAcceptCommand : NodesCommand("accept") {
                 Message.print(player, "You are now a member of ${resident.invitingTown?.name}! Type \"/t spawn\" to teleport to your new town.")
                 Message.print(resident.invitingPlayer, "${resident.name} has accepted your invitation!")
 
-                Nodes.addResidentToTown(resident.invitingTown!!, resident)
+                Town.addResident(resident.invitingTown!!, resident)
                 resident.invitingTown = null
                 resident.invitingPlayer = null
                 resident.inviteThread = null
@@ -462,7 +464,7 @@ class TownAcceptCommand : NodesCommand("accept") {
                     Message.print(applicantPlayer, "You have been accepted into ${town.name}!")
                 }
 
-                Nodes.addResidentToTown(town, applicant)
+                Town.addResident(town, applicant)
                 town.applications.remove(applicant)
             }
         }, playerArg)
@@ -596,7 +598,7 @@ class TownLeaveCommand : NodesCommand("leave") {
             }
 
             Message.print(player, "You have left ${town.name}")
-            Nodes.removeResidentFromTown(town, resident)
+            Town.removeResident(town, resident)
         })
     }
 }
@@ -642,7 +644,7 @@ class TownKickCommand : NodesCommand("kick") {
                 Message.print(targetPlayer, "${ChatColor.DARK_RED}You have been kicked from ${town.name}")
             }
 
-            Nodes.removeResidentFromTown(town, context[playerArg])
+            Town.removeResident(town, context[playerArg])
         }, playerArg)
     }
 }
@@ -664,7 +666,7 @@ class TownSpawn : NodesCommand("spawn") {
             var teleportTime = Nodes.config.townSpawnTime.coerceAtLeast(0)
 
             // multiplier during war and if home occupied
-            if (Nodes.war.enabled && Nodes.getTerritoryFromId(town.home)?.occupier !== null) {
+            if (Nodes.war.enabled && Territory.fromId(Nodes.territories, town.home)?.occupier !== null) {
                 Message.error(player, "${ChatColor.BOLD}Your home is occupied, town spawn will take much longer...")
                 teleportTime *= Nodes.config.occupiedHomeTeleportMultiplier
             }
@@ -698,7 +700,7 @@ class TownSetSpawn : NodesCommand("setspawn") {
                 return@addSyntax
             }
 
-            val result = Nodes.setTownSpawn(town, player.position)
+            val result = Town.setSpawn(town, player.position)
 
             if (result) {
                 Message.print(player, "Town spawn set to current location")
@@ -790,7 +792,7 @@ class TownIncomeCommand : NodesCommand("income") {
 
             // open town inventory
             if (hasPermissions) {
-                player.openInventory(Nodes.getTownIncomeInventory(town))
+                player.openInventory(Town.incomeInventory(town))
             } else {
                 Message.error(player, "You do not have permissions to view town income")
             }
@@ -936,7 +938,7 @@ class TownPermissionsCommand : NodesCommand("permissions", "perms") {
                 }
             }
 
-            Nodes.setTownPermissions(town, permissions, group, flag)
+            Town.setPermissions(town, permissions, group, flag)
 
             Message.print(player, "Set permissions for ${town.name}: $permissions $group $flag")
         }, typeArg, groupArg, flagArg)
@@ -960,10 +962,10 @@ class TownProtectCommand : NodesCommand("protect") {
             }
 
             if (resident.isProtectingChests) {
-                Nodes.stopProtectingChests(resident)
+                Resident.stopProtectingChests(resident)
                 Message.print(player, "${ChatColor.DARK_AQUA}Stopped protecting chests.")
             } else {
-                Nodes.startProtectingChests(resident)
+                Resident.startProtectingChests(resident)
                 Message.print(player, "Click on a chest to protect or unprotect it. Use \"/t protect\" again to stop protecting, or click a non-chest block to stop.")
             }
         })
@@ -985,7 +987,7 @@ class TownProtectShowCommand : NodesCommand("show") {
                 Message.print(player, "${ChatColor.WHITE}${MinecraftServer.getInstanceManager().instances.first().getBlock(block).name()}: x: ${block.blockX}, y: ${block.blockY}, z: ${block.blockZ}")
             }
 
-            Nodes.showProtectedChests(town, resident)
+            Town.showProtectedChests(town, resident)
         })
     }
 }
@@ -1013,7 +1015,7 @@ class TownTrustCommand : NodesCommand("trust") {
             }
 
             // set player trust
-            Nodes.setResidentTrust(context[playerArg], true)
+            Resident.setTrust(context[playerArg], true)
             Message.print(player, "${context[playerArg].name} is now marked as trusted")
         }, playerArg)
     }
@@ -1048,7 +1050,7 @@ class TownUntrustCommand : NodesCommand("untrust") {
             }
 
             // set player trust
-            Nodes.setResidentTrust(context[playerArg], false)
+            Resident.setTrust(context[playerArg], false)
             Message.print(player, "${ChatColor.DARK_AQUA}${context[playerArg].name} is marked as untrusted")
         }, playerArg)
     }
@@ -1075,7 +1077,7 @@ class TownFlyCommand : NodesCommand("fly") {
                 return@addSyntax
             }
 
-            if (Nodes.getTerritoryFromPlayer(player)?.town != town) {
+            if (Territory.fromPlayer(player)?.town != town) {
                 Message.error(player, "You must be in your town to enable flight")
                 return@addSyntax
             }

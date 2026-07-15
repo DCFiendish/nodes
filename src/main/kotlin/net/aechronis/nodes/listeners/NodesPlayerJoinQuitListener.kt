@@ -19,10 +19,10 @@ object NodesPlayerJoinQuitListener {
         // create resident wrapper for player
         // createResident checks if resident already exists
         val player: Player = event.player
-        Nodes.createResident(player)
+        Resident.create(player)
 
-        val resident: Resident = Nodes.getResident(player)!!
-        Nodes.setResidentOnline(resident, player)
+        val resident: Resident = Resident.fromPlayer(player)!!
+        Resident.setOnline(resident, player)
 
         // if war enabled, send active chunk attack progress bars
         if (Nodes.war.enabled) {
@@ -39,12 +39,12 @@ object NodesPlayerJoinQuitListener {
 
     fun onPlayerQuit(event: PlayerDisconnectEvent) {
         val player: Player = event.player
-        val resident = Nodes.getResident(player)
+        val resident = Resident.fromPlayer(player)
         if (resident != null) {
             resident.destroyMinimap()
             resident.plotSelectionEnabled = false
             resident.clearPlotSelection()
-            Nodes.setResidentOffline(resident, player)
+            Resident.setOffline(resident, player)
         }
 
         // remove player from muting global chat

@@ -5,7 +5,6 @@
 package net.aechronis.nodes.chat
 
 import net.aechronis.nodes.Message
-import net.aechronis.nodes.Nodes
 import net.aechronis.nodes.objects.Resident
 import net.aechronis.nodes.utils.ChatColor
 import net.kyori.adventure.text.Component
@@ -44,7 +43,7 @@ object Chat {
 
         // get player chat mode
         val player = event.player
-        val fetchResident = Nodes.getResident(player)
+        val fetchResident = Resident.fromPlayer(player)
         val resident: Resident = fetchResident ?: return // print normal message...
 
         val chatMode = resident.chatMode
@@ -112,7 +111,7 @@ object Chat {
 
     // toggle chat mode then print message
     fun toggleChatMode(player: Player, resident: Resident, chatMode: ChatMode) {
-        val newChatMode = Nodes.toggleChatMode(resident, chatMode)
+        val newChatMode = Resident.toggleChatMode(resident, chatMode)
 
         when (newChatMode) {
             ChatMode.GLOBAL -> Message.print(player, "${ChatColor.BOLD}Now talking in global chat")

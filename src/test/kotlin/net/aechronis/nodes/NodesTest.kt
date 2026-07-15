@@ -4,7 +4,10 @@ import net.aechronis.nodes.constants.PermissionsGroup
 import net.aechronis.nodes.constants.TownPermissions
 import net.aechronis.nodes.objects.Plot
 import net.aechronis.nodes.objects.Resident
+import net.aechronis.nodes.objects.Territory
 import net.aechronis.nodes.objects.TerritoryId
+import net.aechronis.nodes.objects.Town
+import net.aechronis.nodes.war.FlagWar
 import net.kyori.adventure.bossbar.BossBar
 import net.kyori.adventure.text.Component
 import net.minestom.server.MinecraftServer
@@ -115,29 +118,29 @@ class NodesTest {
 
     @Test
     fun `territories are loaded`() {
-        assertTrue(Nodes.getTerritoryCount() > 0, "Should have loaded territories")
+        assertTrue(Territory.count() > 0, "Should have loaded territories")
     }
 
     @Test
     fun `towns are loaded`() {
-        assertTrue(Nodes.getTownCount() > 0, "Should have loaded towns")
+        assertTrue(Town.count() > 0, "Should have loaded towns")
     }
 
     @Test
     fun `can get town by name`() {
-        assertNotNull(Nodes.getTownFromName("London"), "Town from test data should not be null")
+        assertNotNull(Town.fromName("London"), "Town from test data should not be null")
     }
 
     @Test
     fun `can create a new town`() {
         // territory without a town
-        val territory = Nodes.getTerritoryFromId(TerritoryId(18248))
+        val territory = Territory.fromId(Nodes.territories, TerritoryId(18248))
         assertNotNull(territory, "Territory should exist")
 
-        val result = Nodes.createTown("Birmingham", territory, null)
+        val result = Town.create("Birmingham", territory, null)
         assertTrue(result.isSuccess, "Town should have created")
 
-        val town = Nodes.getTownFromName("Birmingham")
+        val town = Town.fromName("Birmingham")
         assertNotNull(town)
         assertEquals("Birmingham", town.name)
         for (permission in enumValues<TownPermissions>()) {
@@ -148,7 +151,7 @@ class NodesTest {
     @Test
     fun `empty town permissions use configured defaults`() {
         val territory = Nodes.territories.values.first { it.town == null }
-        val town = Nodes.loadTown(
+        val town = Town.load(
             UUID.randomUUID(),
             "EmptyDefaults",
             null,
@@ -175,28 +178,28 @@ class NodesTest {
     @Test
     fun `all permission updates apply to town and plots`() {
         val territory = Nodes.territories.values.first { it.town == null }
-        val town = Nodes.createTown("BulkPermissions", territory, null).getOrThrow()
+        val town = Town.create("BulkPermissions", territory, null).getOrThrow()
         val allPermissions = enumValues<TownPermissions>().toList()
 
-        Nodes.setTownPermissions(town, allPermissions, PermissionsGroup.OUTSIDER, true)
+        Town.setPermissions(town, allPermissions, PermissionsGroup.OUTSIDER, true)
         for (permission in allPermissions) {
             assertTrue(town.permissions[permission].contains(PermissionsGroup.OUTSIDER))
         }
 
         val core = territory.core
-        val plot = Nodes.createPlot(
+        val plot = Plot.create(
             town,
             "all",
             Plot.BlockVec3(core.x * 16, 0, core.z * 16),
             Plot.BlockVec3(core.x * 16, 0, core.z * 16),
         ).getOrThrow()
-        Nodes.setPlotGroupPermissions(town, plot, PermissionsGroup.OUTSIDER, allPermissions, false)
+        Plot.setGroupPermissions(town, plot, PermissionsGroup.OUTSIDER, allPermissions, false)
         for (permission in allPermissions) {
             assertEquals(false, plot.groupPermission(PermissionsGroup.OUTSIDER, permission))
         }
 
         val resident = Resident(UUID.randomUUID(), "plot-player")
-        Nodes.setPlotPlayerPermissions(town, plot, resident, allPermissions, true)
+        Plot.setPlayerPermissions(town, plot, resident, allPermissions, true)
         for (permission in allPermissions) {
             assertEquals(true, plot.playerPermission(resident.uuid, permission))
         }
@@ -204,7 +207,7 @@ class NodesTest {
 
     @Test
     fun `can enable war`() {
-        Nodes.enableWar(canAnnexTerritories = true, canOnlyAttackBorders = false, destructionEnabled = true)
+        FlagWar.enable(canAnnexTerritories = true, canOnlyAttackBorders = false, destructionEnabled = true)
         assertTrue(Nodes.war.enabled, "War should be enabled")
     }
 

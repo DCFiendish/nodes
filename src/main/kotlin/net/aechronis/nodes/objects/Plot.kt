@@ -1,5 +1,6 @@
 package net.aechronis.nodes.objects
 
+import net.aechronis.nodes.Nodes
 import net.aechronis.nodes.constants.PermissionsGroup
 import net.aechronis.nodes.constants.TownPermissions
 import net.aechronis.nodes.serdes.SaveState
@@ -10,6 +11,72 @@ class Plot(
     cornerOne: BlockVec3,
     cornerTwo: BlockVec3,
 ) {
+    companion object {
+        fun at(town: Town, blockX: Int, blockY: Int, blockZ: Int): Plot? = town.plots.values.firstOrNull { it.contains(blockX, blockY, blockZ) }
+
+        fun create(town: Town, name: String, cornerOne: BlockVec3, cornerTwo: BlockVec3): Result<Plot> {
+            if (name.isBlank()) return Result.failure(IllegalArgumentException("Plot name cannot be blank"))
+            if (town.plots.containsKey(name)) return Result.failure(IllegalArgumentException("A plot with that name already exists"))
+            val plot = Plot(name, cornerOne, cornerTwo)
+            validate(town, plot)?.let { return Result.failure(IllegalArgumentException(it)) }
+            town.plots[name] = plot
+            town.needsUpdate()
+            Nodes.needsSave = true
+            return Result.success(plot)
+        }
+
+        fun redefine(town: Town, existing: Plot, cornerOne: BlockVec3, cornerTwo: BlockVec3): Result<Plot> {
+            if (town.plots[existing.name] !== existing) return Result.failure(IllegalArgumentException("Plot does not belong to this town"))
+            val plot = Plot(existing.name, cornerOne, cornerTwo)
+            validate(town, plot, existing)?.let { return Result.failure(IllegalArgumentException(it)) }
+            plot.copyPermissionsFrom(existing)
+            town.plots[existing.name] = plot
+            town.needsUpdate()
+            Nodes.needsSave = true
+            return Result.success(plot)
+        }
+
+        fun delete(town: Town, plot: Plot): Boolean {
+            if (town.plots[plot.name] !== plot) return false
+            town.plots.remove(plot.name)
+            town.needsUpdate()
+            Nodes.needsSave = true
+            return true
+        }
+
+        fun setGroupPermissions(town: Town, plot: Plot, group: PermissionsGroup, permissions: Iterable<TownPermissions>, allowed: Boolean?) {
+            permissions.forEach { plot.setGroupPermission(group, it, allowed) }
+            town.needsUpdate()
+            Nodes.needsSave = true
+        }
+
+        fun setPlayerPermissions(town: Town, plot: Plot, player: Resident, permissions: Iterable<TownPermissions>, allowed: Boolean?) {
+            permissions.forEach { plot.setPlayerPermission(player.uuid, it, allowed) }
+            town.needsUpdate()
+            Nodes.needsSave = true
+        }
+
+        internal fun isValid(town: Town, plot: Plot, ignored: Plot? = null): Boolean = validate(town, plot, ignored) == null
+
+        private fun validate(town: Town, plot: Plot, ignored: Plot? = null): String? {
+            val width = plot.maxX - plot.minX + 1
+            val height = plot.maxY - plot.minY + 1
+            val depth = plot.maxZ - plot.minZ + 1
+            if (width > Nodes.config.plotMaxWidth || height > Nodes.config.plotMaxHeight || depth > Nodes.config.plotMaxDepth) {
+                return "Plot exceeds the maximum allowed dimensions"
+            }
+            for (chunkX in Math.floorDiv(plot.minX, 16)..Math.floorDiv(plot.maxX, 16)) {
+                for (chunkZ in Math.floorDiv(plot.minZ, 16)..Math.floorDiv(plot.maxZ, 16)) {
+                    if (Territory.fromCoord(Nodes.territoryChunks, Coord(chunkX, chunkZ))?.town !== town) {
+                        return "Every part of a plot must be inside your town's claimed territory"
+                    }
+                }
+            }
+            if (town.plots.values.any { it !== ignored && it.overlaps(plot) }) return "Plot overlaps an existing plot"
+            return null
+        }
+    }
+
     val minX: Int = minOf(cornerOne.x, cornerTwo.x)
     val minY: Int = minOf(cornerOne.y, cornerTwo.y)
     val minZ: Int = minOf(cornerOne.z, cornerTwo.z)

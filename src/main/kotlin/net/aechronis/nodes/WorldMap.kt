@@ -11,6 +11,7 @@ package net.aechronis.nodes
 
 import net.aechronis.nodes.objects.Coord
 import net.aechronis.nodes.objects.Resident
+import net.aechronis.nodes.objects.TerritoryChunk
 import net.aechronis.nodes.utils.ChatColor
 
 // minimap display primitive glyphs MUST BE SAME ASCII SIZE
@@ -179,7 +180,7 @@ object WorldMap {
             val coord = Coord(x, z)
             val building = Nodes.chunkToBuilding.get(listOf(x, z))
             val buildingToken = building?.takeIf { it.showOnMinimap }?.minimapToken
-            val territoryChunk = Nodes.getTerritoryChunkFromCoord(coord)
+            val territoryChunk = TerritoryChunk.fromCoord(coord)
 
             // get token for current coordinate
             val token = if (territoryChunk == null) {

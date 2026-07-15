@@ -11,7 +11,7 @@ object NodesPlotSelectionListener {
     private fun onBlockBreak(event: PlayerBlockBreakEvent) {
         if (event.isCancelled) return
 
-        val resident = Nodes.getResident(event.player) ?: return
+        val resident = Resident.fromPlayer(event.player) ?: return
         if (!resident.plotSelectionEnabled) return
 
         val block = event.blockPosition
@@ -22,7 +22,7 @@ object NodesPlotSelectionListener {
     }
 
     private fun onBlockInteract(event: PlayerBlockInteractEvent) {
-        val resident: Resident = Nodes.getResident(event.player) ?: return
+        val resident: Resident = Resident.fromPlayer(event.player) ?: return
         if (!resident.plotSelectionEnabled) return
 
         val first = resident.plotCornerOne

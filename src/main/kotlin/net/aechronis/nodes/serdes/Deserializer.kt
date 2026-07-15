@@ -7,11 +7,13 @@ package net.aechronis.nodes.serdes
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import net.aechronis.nodes.Nodes
 import net.aechronis.nodes.constants.PermissionsGroup
 import net.aechronis.nodes.constants.TownPermissions
+import net.aechronis.nodes.objects.Farm
 import net.aechronis.nodes.objects.Nation
 import net.aechronis.nodes.objects.Plot
+import net.aechronis.nodes.objects.Port
+import net.aechronis.nodes.objects.Resident
 import net.aechronis.nodes.objects.Town
 import net.aechronis.nodes.utils.Color
 import net.minestom.server.coordinate.BlockVec
@@ -74,7 +76,7 @@ object Deserializer {
                 // trusted
                 val trusted = resident.get("trust")?.asBoolean ?: false
 
-                Nodes.loadResident(
+                Resident.load(
                     UUID.fromString(uuid),
                     name,
                     trusted,
@@ -290,7 +292,7 @@ object Deserializer {
                     }
                 }
 
-                val townObject: Town? = Nodes.loadTown(
+                val townObject: Town? = Town.load(
                     uuid,
                     name,
                     leader,
@@ -374,7 +376,7 @@ object Deserializer {
                     }
                 }
 
-                val nationObject = Nodes.loadNation(
+                val nationObject = Nation.load(
                     uuid,
                     name,
                     capitalName,
@@ -390,7 +392,7 @@ object Deserializer {
 
         // post process finish load:
         // handle diplomacy
-        Nodes.loadDiplomacy(
+        Nation.loadDiplomacy(
             towns,
             townAllies,
             townEnemies,
@@ -441,7 +443,7 @@ object Deserializer {
             return
         }
         val tier: Int = farm.get("tier")?.asInt ?: 1
-        Nodes.loadFarm(chunkX, chunkZ, tier)
+        Farm.load(chunkX, chunkZ, tier)
     }
 
     private fun loadPort(port: JsonObject) {
@@ -460,7 +462,7 @@ object Deserializer {
         val tier: Int = port.get("tier")?.asInt ?: 1
         val isPublic: Boolean = port.get("isPublic")?.asBoolean ?: false
 
-        Nodes.loadPort(
+        Port.load(
             name,
             chunkX,
             chunkZ,

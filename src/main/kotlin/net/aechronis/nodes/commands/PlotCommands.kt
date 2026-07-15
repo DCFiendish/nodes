@@ -1,13 +1,13 @@
 package net.aechronis.nodes.commands
 
 import net.aechronis.nodes.Message
-import net.aechronis.nodes.Nodes
 import net.aechronis.nodes.commands.arguments.ArgumentResident
 import net.aechronis.nodes.commands.arguments.ArgumentSanitizedString
 import net.aechronis.nodes.commands.arguments.ArgumentTown
 import net.aechronis.nodes.constants.PermissionsGroup
 import net.aechronis.nodes.constants.TownPermissions
 import net.aechronis.nodes.objects.NodesCommand
+import net.aechronis.nodes.objects.Plot
 import net.aechronis.nodes.objects.Resident
 import net.aechronis.nodes.objects.Town
 import net.aechronis.nodes.utils.ChatColor
@@ -35,10 +35,10 @@ class TownPlotToggleCommand : NodesCommand("toggle") {
                 return@addSyntax
             }
             if (resident.plotSelectionEnabled) {
-                Nodes.stopPlotSelection(resident)
+                Resident.stopPlotSelection(resident)
                 Message.print(player, "Plot selection disabled")
             } else {
-                Nodes.startPlotSelection(resident)
+                Resident.startPlotSelection(resident)
                 Message.print(player, "Plot selection enabled. Left-click corner 1 and right-click corner 2")
             }
         })
@@ -61,7 +61,7 @@ class TownPlotCreateCommand : NodesCommand("create") {
                 return@addSyntax
             }
 
-            Nodes.createPlot(town, context[nameArg], first, second).getOrElse { error ->
+            Plot.create(town, context[nameArg], first, second).getOrElse { error ->
                 Message.error(player, "Failed to create plot: ${error.message}")
                 return@addSyntax
             }
@@ -92,7 +92,7 @@ class TownPlotRedefineCommand : NodesCommand("redefine") {
                 return@addSyntax
             }
 
-            Nodes.redefinePlot(town, plot, first, second).getOrElse { error ->
+            Plot.redefine(town, plot, first, second).getOrElse { error ->
                 Message.error(player, "Failed to redefine plot: ${error.message}")
                 return@addSyntax
             }
@@ -143,7 +143,7 @@ class TownPlotDeleteCommand : NodesCommand("delete") {
                 return@addSyntax
             }
             val plot = town.plots[context[nameArg]]
-            if (plot == null || !Nodes.deletePlot(town, plot)) {
+            if (plot == null || !Plot.delete(town, plot)) {
                 Message.error(player, "Plot not found")
                 return@addSyntax
             }
@@ -175,10 +175,10 @@ class NodesAdminTownPlotCommand : NodesCommand("plot", "nodes.admin") {
 
         addSyntax({ player, resident, context ->
             if (resident.plotSelectionEnabled) {
-                Nodes.stopPlotSelection(resident)
+                Resident.stopPlotSelection(resident)
                 Message.print(player, "Plot selection disabled for ${context[townArg].name}")
             } else {
-                Nodes.startPlotSelection(resident)
+                Resident.startPlotSelection(resident)
                 Message.print(player, "Plot selection enabled. Left-click corner 1 and right-click corner 2")
             }
         }, townArg, toggleLiteral)
@@ -200,7 +200,7 @@ class NodesAdminTownPlotCommand : NodesCommand("plot", "nodes.admin") {
                 Message.error(player, "Select two plot corners first with the admin toggle command")
                 return@addSyntax
             }
-            Nodes.redefinePlot(town, plot, first, second).getOrElse { error ->
+            Plot.redefine(town, plot, first, second).getOrElse { error ->
                 Message.error(player, "Failed to redefine plot: ${error.message}")
                 return@addSyntax
             }
@@ -221,7 +221,7 @@ class NodesAdminTownPlotCommand : NodesCommand("plot", "nodes.admin") {
         addSyntax({ player, _, context ->
             val town = context[townArg]
             val plot = town.plots[context[deleteNameArg]]
-            if (plot == null || !Nodes.deletePlot(town, plot)) {
+            if (plot == null || !Plot.delete(town, plot)) {
                 Message.error(player, "Plot not found")
                 return@addSyntax
             }
@@ -237,7 +237,7 @@ private fun createAdminPlot(player: Player, resident: Resident, town: Town, name
         Message.error(player, "Select two plot corners first with the admin toggle command")
         return
     }
-    Nodes.createPlot(town, name, first, second).getOrElse { error ->
+    Plot.create(town, name, first, second).getOrElse { error ->
         Message.error(player, "Failed to create plot: ${error.message}")
         return
     }
@@ -266,7 +266,7 @@ private fun setGroupPlotPermission(
         Message.error(player, "Invalid plot, group, action, or flag")
         return
     }
-    Nodes.setPlotGroupPermissions(town, plot, group, permissions, flag)
+    Plot.setGroupPermissions(town, plot, group, permissions, flag)
     Message.print(player, "Updated ${town.name}/$plotName permission: $group $permissionName $flagName")
 }
 
@@ -290,7 +290,7 @@ private fun setPlayerPlotPermission(
         Message.error(player, "Invalid plot, action, or flag")
         return
     }
-    Nodes.setPlotPlayerPermissions(town, plot, target, permissions, flag)
+    Plot.setPlayerPermissions(town, plot, target, permissions, flag)
     Message.print(player, "Updated ${town.name}/$plotName permission for ${target.name}: $permissionName $flagName")
 }
 
