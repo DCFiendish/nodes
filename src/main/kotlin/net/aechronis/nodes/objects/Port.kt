@@ -45,7 +45,7 @@ class Port(
             }.let { Result.success(it) }
         }
 
-        fun owner(port: Port): Town? {
+        fun getOwner(port: Port): Town? {
             if (port.isPublic) return null
             val chunk = TerritoryChunk.fromCoord(Coord(port.chunkX, port.chunkZ)) ?: return null
             return chunk.occupier ?: chunk.territory.town
@@ -89,7 +89,7 @@ class Port(
         if (this.isPublic) {
             Message.print(sender, "${ChatColor.AQUA}- Public")
         } else {
-            val owner = owner(this)
+            val owner = getOwner(this)
             val ownerName = if (owner !== null) {
                 owner.name
             } else {

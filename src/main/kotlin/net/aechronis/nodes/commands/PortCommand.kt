@@ -108,7 +108,7 @@ class PortWarpCommand : NodesCommand("warp") {
 
             // check port access
             if (!dest.isPublic) {
-                val owner = Port.owner(dest)
+                val owner = Port.getOwner(dest)
                 if (owner !== null) {
                     val relation = Town.relationshipOfPlayerToTown(player, owner)
 
