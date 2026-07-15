@@ -11,6 +11,7 @@ import net.aechronis.nodes.Nodes
 import net.aechronis.nodes.constants.PermissionsGroup
 import net.aechronis.nodes.constants.TownPermissions
 import net.aechronis.nodes.objects.Nation
+import net.aechronis.nodes.objects.Plot
 import net.aechronis.nodes.objects.Town
 import net.aechronis.nodes.utils.Color
 import net.minestom.server.coordinate.BlockVec
@@ -241,6 +242,54 @@ object Deserializer {
                     }
                 }
 
+                val plots: ArrayList<Plot.PlotSaveState> = ArrayList()
+                val plotsJsonArray = town.get("plots")?.asJsonArray
+                if (plotsJsonArray !== null) {
+                    for (plotJson in plotsJsonArray) {
+                        try {
+                            val plot = plotJson.asJsonObject
+                            val name = plot.get("name")?.asString ?: continue
+                            val min = plot.get("min")?.asJsonArray ?: continue
+                            val max = plot.get("max")?.asJsonArray ?: continue
+                            if (min.size() != 3 || max.size() != 3) continue
+
+                            val groupPermissions: MutableMap<PermissionsGroup, Map<TownPermissions, Boolean>> = hashMapOf()
+                            val permissionsJson = plot.get("permissions")?.asJsonObject
+                            permissionsJson?.keySet()?.forEach { groupName ->
+                                val group = runCatching { PermissionsGroup.valueOf(groupName) }.getOrNull() ?: return@forEach
+                                val permissionJson = permissionsJson.get(groupName)?.asJsonObject ?: return@forEach
+                                val permissions = parsePlotPermissions(permissionJson)
+                                if (permissions.isNotEmpty()) groupPermissions[group] = permissions
+                            }
+
+                            val playerPermissions: MutableMap<UUID, Map<TownPermissions, Boolean>> = hashMapOf()
+                            val playersJson = plot.get("players")?.asJsonObject
+                            playersJson?.keySet()?.forEach { uuidString ->
+                                val uuid = runCatching { UUID.fromString(uuidString) }.getOrNull() ?: return@forEach
+                                val permissionJson = playersJson.get(uuidString)?.asJsonObject ?: return@forEach
+                                val permissions = parsePlotPermissions(permissionJson)
+                                if (permissions.isNotEmpty()) playerPermissions[uuid] = permissions
+                            }
+
+                            plots.add(
+                                Plot.PlotSaveState(
+                                    name,
+                                    min[0].asInt,
+                                    min[1].asInt,
+                                    min[2].asInt,
+                                    max[0].asInt,
+                                    max[1].asInt,
+                                    max[2].asInt,
+                                    groupPermissions,
+                                    playerPermissions,
+                                ),
+                            )
+                        } catch (err: RuntimeException) {
+                            System.err.println("Invalid plot in town $name: ${err.message}")
+                        }
+                    }
+                }
+
                 val townObject: Town? = Nodes.loadTown(
                     uuid,
                     name,
@@ -256,6 +305,7 @@ object Deserializer {
                     income,
                     permissions,
                     protectedBlocks,
+                    plots,
                 )
 
                 if (townObject !== null) {
@@ -348,6 +398,15 @@ object Deserializer {
             nationAllies,
             nationEnemies,
         )
+    }
+
+    private fun parsePlotPermissions(json: JsonObject): Map<TownPermissions, Boolean> {
+        val permissions: MutableMap<TownPermissions, Boolean> = hashMapOf()
+        json.keySet().forEach { permissionName ->
+            val permission = runCatching { TownPermissions.valueOf(permissionName) }.getOrNull() ?: return@forEach
+            permissions[permission] = json.get(permissionName).asBoolean
+        }
+        return permissions
     }
 
     // parse buildings.json

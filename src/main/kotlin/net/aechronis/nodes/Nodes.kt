@@ -46,6 +46,7 @@ import net.aechronis.nodes.listeners.NodesIncomeInventoryListener
 import net.aechronis.nodes.listeners.NodesPlayerDamageListener
 import net.aechronis.nodes.listeners.NodesPlayerJoinQuitListener
 import net.aechronis.nodes.listeners.NodesPlayerMoveListener
+import net.aechronis.nodes.listeners.NodesPlotSelectionListener
 import net.aechronis.nodes.listeners.NodesWorldListener
 import net.aechronis.nodes.objects.Building
 import net.aechronis.nodes.objects.Coord
@@ -56,6 +57,7 @@ import net.aechronis.nodes.objects.Nation
 import net.aechronis.nodes.objects.NationPair
 import net.aechronis.nodes.objects.OreBlockCache
 import net.aechronis.nodes.objects.OreSampler
+import net.aechronis.nodes.objects.Plot
 import net.aechronis.nodes.objects.Port
 import net.aechronis.nodes.objects.Resident
 import net.aechronis.nodes.objects.ResourceNode
@@ -184,6 +186,7 @@ object Nodes {
         NodesPlayerDamageListener.init()
         NodesPlayerJoinQuitListener.init()
         NodesPlayerMoveListener.init()
+        NodesPlotSelectionListener.init()
         NodesWorldListener.init()
 
         // shutdown task
@@ -940,6 +943,7 @@ object Nodes {
         income: MutableMap<Material, Int>,
         permissions: MutableMap<TownPermissions, EnumSet<PermissionsGroup>>,
         protectedBlocks: HashSet<BlockVec>,
+        plots: ArrayList<Plot.PlotSaveState> = arrayListOf(),
     ): Town? {
         val leaderAsResident = if (leader != null) {
             getResidentFromUUID(leader)
@@ -1037,6 +1041,15 @@ object Nodes {
         // add protected blocks
         town.protectedBlocks.addAll(protectedBlocks)
 
+        // add saved plots, ignoring malformed or overlapping entries
+        for (plotState in plots) {
+            val plot = Plot(plotState)
+            if (plot.name.isBlank() || town.plots.containsKey(plot.name)) continue
+            if (validatePlot(town, plot) == null) {
+                town.plots[plot.name] = plot
+            }
+        }
+
         // save new town
         towns.put(name, town)
 
@@ -1102,6 +1115,108 @@ object Nodes {
         val resident = getResident(player)
         if (resident !== null) {
             return resident.town
+        }
+
+        return null
+    }
+
+    fun getPlotAt(town: Town, blockX: Int, blockY: Int, blockZ: Int): Plot? = town.plots.values.firstOrNull { it.contains(blockX, blockY, blockZ) }
+
+    fun createPlot(
+        town: Town,
+        name: String,
+        cornerOne: Plot.BlockVec3,
+        cornerTwo: Plot.BlockVec3,
+    ): Result<Plot> {
+        if (name.isBlank()) {
+            return Result.failure(IllegalArgumentException("Plot name cannot be blank"))
+        }
+        if (town.plots.containsKey(name)) {
+            return Result.failure(IllegalArgumentException("A plot with that name already exists"))
+        }
+
+        val plot = Plot(name, cornerOne, cornerTwo)
+        val validation = validatePlot(town, plot)
+        if (validation != null) return Result.failure(IllegalArgumentException(validation))
+
+        town.plots[name] = plot
+        town.needsUpdate()
+        needsSave = true
+        return Result.success(plot)
+    }
+
+    fun redefinePlot(
+        town: Town,
+        existing: Plot,
+        cornerOne: Plot.BlockVec3,
+        cornerTwo: Plot.BlockVec3,
+    ): Result<Plot> {
+        if (town.plots[existing.name] !== existing) {
+            return Result.failure(IllegalArgumentException("Plot does not belong to this town"))
+        }
+
+        val plot = Plot(existing.name, cornerOne, cornerTwo)
+        val validation = validatePlot(town, plot, existing)
+        if (validation != null) return Result.failure(IllegalArgumentException(validation))
+
+        plot.copyPermissionsFrom(existing)
+        town.plots[existing.name] = plot
+        town.needsUpdate()
+        needsSave = true
+        return Result.success(plot)
+    }
+
+    fun deletePlot(town: Town, plot: Plot): Boolean {
+        if (town.plots[plot.name] !== plot) return false
+        town.plots.remove(plot.name)
+        town.needsUpdate()
+        needsSave = true
+        return true
+    }
+
+    fun setPlotGroupPermission(
+        town: Town,
+        plot: Plot,
+        group: PermissionsGroup,
+        permission: TownPermissions,
+        allowed: Boolean?,
+    ) {
+        plot.setGroupPermission(group, permission, allowed)
+        town.needsUpdate()
+        needsSave = true
+    }
+
+    fun setPlotPlayerPermission(
+        town: Town,
+        plot: Plot,
+        player: Resident,
+        permission: TownPermissions,
+        allowed: Boolean?,
+    ) {
+        plot.setPlayerPermission(player.uuid, permission, allowed)
+        town.needsUpdate()
+        needsSave = true
+    }
+
+    private fun validatePlot(town: Town, plot: Plot, ignored: Plot? = null): String? {
+        val width = plot.maxX - plot.minX + 1
+        val height = plot.maxY - plot.minY + 1
+        val depth = plot.maxZ - plot.minZ + 1
+        if (width > config.plotMaxWidth || height > config.plotMaxHeight || depth > config.plotMaxDepth) {
+            return "Plot exceeds the maximum allowed dimensions"
+        }
+
+        for (chunkX in Math.floorDiv(plot.minX, 16)..Math.floorDiv(plot.maxX, 16)) {
+            for (chunkZ in Math.floorDiv(plot.minZ, 16)..Math.floorDiv(plot.maxZ, 16)) {
+                val territory = getTerritoryFromCoord(Coord(chunkX, chunkZ))
+                if (territory?.town !== town) {
+                    return "Every part of a plot must be inside your town's claimed territory"
+                }
+            }
+        }
+
+        if (town.plots.values.any { it !== ignored && it.overlaps(plot) }) {
+            return "Plot overlaps an existing plot"
         }
 
         return null
@@ -1258,6 +1373,9 @@ object Nodes {
     }
 
     fun removeResidentFromTown(town: Town, resident: Resident) {
+        resident.plotSelectionEnabled = false
+        resident.clearPlotSelection()
+
         if (town.officers.contains(resident)) {
             town.officers.remove(resident)
         }
@@ -2037,6 +2155,89 @@ object Nodes {
     // ==============================================
     // Chest protection functions
     // ==============================================
+
+    internal fun startPlotSelection(resident: Resident) {
+        val player = resident.player() ?: return
+        resident.isProtectingChests = false
+        resident.clearPlotSelection()
+        resident.plotSelectionEnabled = true
+
+        var task: Task? = null
+        task = MinecraftServer.getSchedulerManager()
+            .buildTask {
+                if (!resident.plotSelectionEnabled || !player.isOnline) {
+                    task?.cancel()
+                    return@buildTask
+                }
+                renderPlotSelectionParticles(player, resident)
+            }
+            .delay(TaskSchedule.tick(1))
+            .repeat(TaskSchedule.tick(10))
+            .schedule()
+        resident.plotParticleTask = task
+    }
+
+    internal fun stopPlotSelection(resident: Resident) {
+        resident.plotSelectionEnabled = false
+        resident.clearPlotSelection()
+    }
+
+    private fun renderPlotSelectionParticles(player: Player, resident: Resident) {
+        val first = resident.plotCornerOne ?: return
+        val second = resident.plotCornerTwo
+        val particlePositions = linkedSetOf<Plot.BlockVec3>()
+
+        if (second == null) {
+            particlePositions.add(first)
+        } else {
+            val minX = minOf(first.x, second.x)
+            val minY = minOf(first.y, second.y)
+            val minZ = minOf(first.z, second.z)
+            val maxX = maxOf(first.x, second.x)
+            val maxY = maxOf(first.y, second.y)
+            val maxZ = maxOf(first.z, second.z)
+
+            fun addEdge(start: Plot.BlockVec3, end: Plot.BlockVec3) {
+                val xStep = (end.x - start.x).compareTo(0)
+                val yStep = (end.y - start.y).compareTo(0)
+                val zStep = (end.z - start.z).compareTo(0)
+                val length = maxOf(kotlin.math.abs(end.x - start.x), kotlin.math.abs(end.y - start.y), kotlin.math.abs(end.z - start.z))
+                for (i in 0..length) {
+                    particlePositions.add(
+                        Plot.BlockVec3(
+                            start.x + i * xStep,
+                            start.y + i * yStep,
+                            start.z + i * zStep,
+                        ),
+                    )
+                }
+            }
+
+            addEdge(Plot.BlockVec3(minX, minY, minZ), Plot.BlockVec3(maxX, minY, minZ))
+            addEdge(Plot.BlockVec3(minX, minY, maxZ), Plot.BlockVec3(maxX, minY, maxZ))
+            addEdge(Plot.BlockVec3(minX, maxY, minZ), Plot.BlockVec3(maxX, maxY, minZ))
+            addEdge(Plot.BlockVec3(minX, maxY, maxZ), Plot.BlockVec3(maxX, maxY, maxZ))
+            addEdge(Plot.BlockVec3(minX, minY, minZ), Plot.BlockVec3(minX, minY, maxZ))
+            addEdge(Plot.BlockVec3(maxX, minY, minZ), Plot.BlockVec3(maxX, minY, maxZ))
+            addEdge(Plot.BlockVec3(minX, maxY, minZ), Plot.BlockVec3(minX, maxY, maxZ))
+            addEdge(Plot.BlockVec3(maxX, maxY, minZ), Plot.BlockVec3(maxX, maxY, maxZ))
+            addEdge(Plot.BlockVec3(minX, minY, minZ), Plot.BlockVec3(minX, maxY, minZ))
+            addEdge(Plot.BlockVec3(maxX, minY, minZ), Plot.BlockVec3(maxX, maxY, minZ))
+            addEdge(Plot.BlockVec3(minX, minY, maxZ), Plot.BlockVec3(minX, maxY, maxZ))
+            addEdge(Plot.BlockVec3(maxX, minY, maxZ), Plot.BlockVec3(maxX, maxY, maxZ))
+        }
+
+        val packets = particlePositions.map { position ->
+            ParticlePacket(
+                Particle.WAX_ON,
+                Pos(position.x + 0.5, position.y + 0.5, position.z + 0.5),
+                Vec(0.05, 0.05, 0.05),
+                0F,
+                1,
+            )
+        }.toTypedArray()
+        if (packets.isNotEmpty()) player.sendPackets(*packets)
+    }
 
     /**
      * Sets resident trust

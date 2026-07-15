@@ -28,6 +28,19 @@ class Resident(val uuid: UUID, val name: String) {
     // player is protecting chest with right click
     var isProtectingChests: Boolean = false
 
+    // temporary town plot selection state
+    var plotSelectionEnabled: Boolean = false
+    var plotCornerOne: Plot.BlockVec3? = null
+    var plotCornerTwo: Plot.BlockVec3? = null
+    var plotParticleTask: Task? = null
+
+    fun clearPlotSelection() {
+        plotCornerOne = null
+        plotCornerTwo = null
+        plotParticleTask?.cancel()
+        plotParticleTask = null
+    }
+
     // chat mode config
     var chatMode: ChatMode = ChatMode.GLOBAL
 

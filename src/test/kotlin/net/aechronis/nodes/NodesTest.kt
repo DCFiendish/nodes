@@ -35,7 +35,7 @@ class NodesTest {
         // start server
         val server = MinecraftServer.init()
         serverInitialized = true
-        server.start("0.0.0.0", 55555)
+        server.start("0.0.0.0", 25565)
 
         // create instance
         val instance = MinecraftServer.getInstanceManager().createInstanceContainer()

@@ -74,6 +74,9 @@ class Town(
     // protected chest blocks in town (for leader, officers, + trusted players)
     val protectedBlocks: HashSet<BlockVec> = hashSetOf()
 
+    // persistent 3D cuboid plots inside the town's claimed territory
+    val plots: LinkedHashMap<String, Plot> = linkedMapOf()
+
     // color for displaying on map
     var color: Color = Color(
         ThreadLocalRandom.current().nextInt(256),
@@ -185,6 +188,7 @@ class Town(
         val captured = t.captured.toList()
         val income = t.income.storage.toMutableMap()
         val protectedBlocks: HashSet<BlockVec> = HashSet(t.protectedBlocks)
+        val plots: List<Plot.PlotSaveState> = t.plots.values.map { it.getSaveState() }
 
         override var jsonString: String? = null
 
@@ -220,7 +224,8 @@ class Town(
                     "\"annexed\":$annexed," +
                     "\"captured\":$captured," +
                     "\"income\":$income," +
-                    "\"protect\":${blocksToJsonString(this.protectedBlocks)}" +
+                    "\"protect\":${blocksToJsonString(this.protectedBlocks)}," +
+                    "\"plots\":[${this.plots.joinToString(",") { it.toJsonString() }}]" +
                     "}"
                 )
 

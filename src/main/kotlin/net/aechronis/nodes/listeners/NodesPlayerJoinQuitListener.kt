@@ -42,6 +42,8 @@ object NodesPlayerJoinQuitListener {
         val resident = Nodes.getResident(player)
         if (resident != null) {
             resident.destroyMinimap()
+            resident.plotSelectionEnabled = false
+            resident.clearPlotSelection()
             Nodes.setResidentOffline(resident, player)
         }
 

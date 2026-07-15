@@ -48,6 +48,8 @@ import java.util.concurrent.ThreadLocalRandom
 
 object NodesWorldListener {
     private fun onBlockBreak(event: PlayerBlockBreakEvent) {
+        if (event.isCancelled) return
+
         val player: Player = event.player
         val blockPos = event.blockPosition
         val territoryChunk = Nodes.getTerritoryChunkFromBlock(blockPos.blockX, blockPos.blockZ)
@@ -107,6 +109,15 @@ object NodesWorldListener {
 
         // interacting in a town
         if (resident !== null) {
+            val plot = Nodes.getPlotAt(town, blockPos.blockX, blockPos.blockY, blockPos.blockZ)
+            val plotPermission = plot?.let { getPlotPermission(TownPermissions.DESTROY, it, resident, town) }
+            if (plotPermission != null) {
+                if (plotPermission) return
+                event.isCancelled = true
+                Message.error(player, "You cannot destroy here!")
+                return
+            }
+
             if (hasTownPermissions(TownPermissions.DESTROY, town, resident)) {
                 return
             }
@@ -148,6 +159,8 @@ object NodesWorldListener {
     }
 
     private fun onBlockPlace(event: PlayerBlockPlaceEvent) {
+        if (event.isCancelled) return
+
         val block = event.block
         val blockPos = event.blockPosition
         val player: Player = event.player
@@ -262,6 +275,15 @@ object NodesWorldListener {
 
         // interacting in a town
         if (resident !== null) {
+            val plot = Nodes.getPlotAt(town, blockPos.blockX, blockPos.blockY, blockPos.blockZ)
+            val plotPermission = plot?.let { getPlotPermission(TownPermissions.BUILD, it, resident, town) }
+            if (plotPermission != null) {
+                if (plotPermission) return
+                event.isCancelled = true
+                Message.error(player, "You cannot build here!")
+                return
+            }
+
             if (hasTownPermissions(TownPermissions.BUILD, town, resident)) {
                 return
             }
@@ -302,6 +324,8 @@ object NodesWorldListener {
     }
 
     private fun onBlockInteract(event: PlayerBlockInteractEvent) {
+        if (event.isCancelled) return
+
         val territory: Territory? = Nodes.getTerritoryFromBlock(event.blockPosition.blockX, event.blockPosition.blockZ)
         val territoryChunk = Nodes.getTerritoryChunkFromBlock(event.blockPosition.blockX, event.blockPosition.blockZ)
         val resident = Nodes.getResident(event.player)
@@ -321,6 +345,8 @@ object NodesWorldListener {
                 return
             }
 
+            val plot = Nodes.getPlotAt(town, event.blockPosition.blockX, event.blockPosition.blockY, event.blockPosition.blockZ)
+
             // special permissions for using chests, furnaces, etc...
             if (PROTECTED_BLOCKS.contains(event.block)) {
                 // war permissions override
@@ -328,8 +354,10 @@ object NodesWorldListener {
                     return
                 }
 
+                val plotPermission = plot?.let { getPlotPermission(TownPermissions.CHESTS, it, resident, town) }
+
                 // normal town permissions
-                if (hasTownPermissions(TownPermissions.CHESTS, town, resident)) {
+                if (plotPermission == true || (plotPermission == null && hasTownPermissions(TownPermissions.CHESTS, town, resident))) {
                     // check if chest protected
                     if (town.protectedBlocks.contains(event.blockPosition) && !resident.hasTownProtectedChestPermissions(town)) {
                         event.isCancelled = true
@@ -345,7 +373,13 @@ object NodesWorldListener {
             }
 
             // general interact permissions
-            if (hasTownPermissions(TownPermissions.INTERACT, town, resident)) {
+            val plotPermission = plot?.let { getPlotPermission(TownPermissions.INTERACT, it, resident, town) }
+            if (plotPermission == true || (plotPermission == null && hasTownPermissions(TownPermissions.INTERACT, town, resident))) {
+                return
+            }
+            if (plotPermission == false) {
+                event.isCancelled = true
+                Message.error(event.player, "You cannot interact here!")
                 return
             }
 
@@ -407,6 +441,38 @@ private fun hasTownPermissions(perms: TownPermissions, town: Town, player: Resid
     }
 
     return false
+}
+
+/**
+ * Returns a plot override, or null when the plot should inherit town permissions.
+ */
+private fun getPlotPermission(
+    permission: TownPermissions,
+    plot: net.aechronis.nodes.objects.Plot,
+    resident: Resident,
+    town: Town,
+): Boolean? {
+    plot.playerPermission(resident.uuid, permission)?.let { return it }
+
+    val groupMatches = listOf(
+        PermissionsGroup.TOWN to (resident.town === town),
+        PermissionsGroup.TRUSTED to (resident.town === town && resident.trusted),
+        PermissionsGroup.NATION to (town.nation !== null && resident.nation === town.nation),
+        PermissionsGroup.ALLY to (
+            town.nation !== null &&
+                resident.town?.nation !== null &&
+                town.nation!!.allies.contains(resident.town!!.nation)
+            ),
+        PermissionsGroup.OUTSIDER to true,
+    )
+
+    for ((group, matches) in groupMatches) {
+        if (matches) {
+            plot.groupPermission(group, permission)?.let { return it }
+        }
+    }
+
+    return null
 }
 
 /**

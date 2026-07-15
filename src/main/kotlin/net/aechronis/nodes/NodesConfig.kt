@@ -61,6 +61,11 @@ data class NodesConfig(
     // allow getting ore in captured territory
     val allowOreInCaptured: Boolean = true,
 
+    // maximum dimensions for a town plot cuboid
+    val plotMaxWidth: Int = 256,
+    val plotMaxHeight: Int = 384,
+    val plotMaxDepth: Int = 256,
+
     // allow mining in other towns in nation
     val allowOreInNationTowns: Boolean = true,
 

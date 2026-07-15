@@ -78,6 +78,7 @@ class TownCommand : NodesCommand("t", null, "town") {
             Message.print(player, "/town trust${ChatColor.WHITE}: Mark player as trusted")
             Message.print(player, "/town untrust${ChatColor.WHITE}: Remove player from trusted")
             Message.print(player, "/town fly${ChatColor.WHITE}: Fly inside your town")
+            Message.print(player, "/town plot${ChatColor.WHITE}: Protect areas with 3D plots")
         }
 
         // no args, print current town info
@@ -104,6 +105,7 @@ class TownCommand : NodesCommand("t", null, "town") {
                 Message.print(player, "/town trust${ChatColor.WHITE}: Mark player as trusted")
                 Message.print(player, "/town untrust${ChatColor.WHITE}: Remove player from trusted")
                 Message.print(player, "/town fly${ChatColor.WHITE}: Fly inside your town")
+                Message.print(player, "/town plot${ChatColor.WHITE}: Protect areas with 3D plots")
             }
         })
 
@@ -129,6 +131,7 @@ class TownCommand : NodesCommand("t", null, "town") {
         addSubcommand(TownTrustCommand())
         addSubcommand(TownUntrustCommand())
         addSubcommand(TownFlyCommand())
+        addSubcommand(TownPlotCommand())
     }
 }
 
@@ -154,6 +157,7 @@ class TownHelpCommand : NodesCommand("help") {
             Message.print(player, "/town trust${ChatColor.WHITE}: Mark player as trusted")
             Message.print(player, "/town untrust${ChatColor.WHITE}: Remove player from trusted")
             Message.print(player, "/town fly${ChatColor.WHITE}: Fly inside your town")
+            Message.print(player, "/town plot${ChatColor.WHITE}: Protect areas with 3D plots")
         }
     }
 }

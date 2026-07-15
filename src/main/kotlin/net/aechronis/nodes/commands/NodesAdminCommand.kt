@@ -155,6 +155,7 @@ class NodesAdminTownCommand : NodesCommand("town", "nodes.admin") {
             Message.print(player, "/nodesadmin town color${ChatColor.WHITE}: Set the color of a town")
             Message.print(player, "/nodesadmin town open${ChatColor.WHITE}: Toggle town is open to join")
             Message.print(player, "/nodesadmin town income${ChatColor.WHITE}: View a town's income inventory")
+            Message.print(player, "/nodesadmin town plot${ChatColor.WHITE}: Manage a town's plots")
             Message.print(player, "Run a command with no args to see usage.")
         }
 
@@ -177,6 +178,7 @@ class NodesAdminTownCommand : NodesCommand("town", "nodes.admin") {
         addSubcommand(NodesAdminTownIncomeCommand())
         addSubcommand(NodesAdminTownSetHomeCommand())
         addSubcommand(NodesAdminTownDefaultTownSpawnsCommand())
+        addSubcommand(NodesAdminTownPlotCommand())
     }
 }
 

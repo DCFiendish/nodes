@@ -55,6 +55,7 @@ object Chat {
                 event.recipients.removeAll(playersMuteGlobal)
                 event.formattedMessage = formatMsgGlobal(resident, player.username, msg)
             }
+
             ChatMode.TOWN -> {
                 val town = resident.town
                 if (town == null) {
@@ -65,6 +66,7 @@ object Chat {
                 event.recipients.addAll(town.playersOnline)
                 event.formattedMessage = formatMsgTown(resident, player.username, msg)
             }
+
             ChatMode.NATION -> {
                 val nation = resident.nation
                 if (nation == null) {
@@ -75,6 +77,7 @@ object Chat {
                 event.recipients.addAll(nation.playersOnline)
                 event.formattedMessage = formatMsgNation(resident, player.username, msg)
             }
+
             ChatMode.ALLY -> {
                 val town = resident.town
                 if (town == null) {
