@@ -667,7 +667,7 @@ class TownSpawn : NodesCommand("spawn") {
             var teleportTime = Nodes.config.townSpawnTime.coerceAtLeast(0)
 
             // multiplier during war and if home occupied
-            if (FlagWar.enabled && Territory.fromId(Nodes.territories, town.home)?.occupier !== null) {
+            if (FlagWar.enabled && Territory.fromId(town.home)?.occupier !== null) {
                 Message.error(player, "${ChatColor.BOLD}Your home is occupied, town spawn will take much longer...")
                 teleportTime *= Nodes.config.occupiedHomeTeleportMultiplier
             }
@@ -895,12 +895,19 @@ class TownPermissionsCommand : NodesCommand("permissions", "perms") {
             // match permissions and group
             val permissions: List<TownPermissions> = when (context[typeArg].lowercase()) {
                 "all" -> enumValues<TownPermissions>().toList()
+
                 "build" -> listOf(TownPermissions.BUILD)
+
                 "destroy" -> listOf(TownPermissions.DESTROY)
+
                 "interact" -> listOf(TownPermissions.INTERACT)
+
                 "chests" -> listOf(TownPermissions.CHESTS)
+
                 "items" -> listOf(TownPermissions.USE_ITEMS)
+
                 "income" -> listOf(TownPermissions.INCOME)
+
                 else -> {
                     Message.error(player, "Invalid permissions type ${context[typeArg]}. Valid options: all, build, destroy, interact, chests, items, income")
                     return@addSyntax
@@ -909,10 +916,15 @@ class TownPermissionsCommand : NodesCommand("permissions", "perms") {
 
             val group: PermissionsGroup = when (context[groupArg].lowercase()) {
                 "town" -> PermissionsGroup.TOWN
+
                 "nation" -> PermissionsGroup.NATION
+
                 "ally" -> PermissionsGroup.ALLY
+
                 "outsider" -> PermissionsGroup.OUTSIDER
+
                 "trusted" -> PermissionsGroup.TRUSTED
+
                 else -> {
                     Message.error(player, "Invalid permissions group ${context[groupArg]}. Valid options: town, nation, ally, outsider, trusted")
                     return@addSyntax

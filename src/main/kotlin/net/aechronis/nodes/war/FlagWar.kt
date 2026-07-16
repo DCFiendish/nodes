@@ -509,7 +509,7 @@ object FlagWar {
     }
 
     internal fun loadAttack(attacker: UUID, coord: Coord, flagBase: BlockVec, completionTime: Long) {
-        val resident = Resident.fromUuid(Nodes.residents, attacker) ?: return
+        val resident = Resident.fromUuid(attacker) ?: return
         val attackingTown = resident.town ?: return
         val chunk = TerritoryChunk.fromCoord(coord) ?: return
         if (chunk.attacker !== null || chunk.territory.town === null) return
@@ -846,7 +846,7 @@ object FlagWar {
         if (chunk.coord == chunk.territory.core) {
             val territory = chunk.territory
             val territoryTown = territory.town
-            val attacker = Resident.fromUuid(Nodes.residents, attack.attacker)
+            val attacker = Resident.fromUuid(attack.attacker)
             val attackerTown = attack.town
             val attackerNation = attackerTown.nation
 
@@ -889,7 +889,7 @@ object FlagWar {
         else {
             val town = chunk.territory.town
             val occupier = chunk.territory.occupier
-            val attacker = Resident.fromUuid(Nodes.residents, attack.attacker)
+            val attacker = Resident.fromUuid(attack.attacker)
 
             chunk.attacker = null
 

@@ -36,7 +36,7 @@ object NodesChestProtectionListener {
         if (PROTECTED_BLOCKS.contains(event.block)) {
             val town: Town = resident.town!!
             val territory: Territory? =
-                Territory.fromBlock(Nodes.territoryChunks, event.blockPosition.blockX, event.blockPosition.blockZ)
+                Territory.fromBlock(event.blockPosition.blockX, event.blockPosition.blockZ)
             val territoryTown: Town? = territory?.town
 
             if (town !== territoryTown) {
@@ -78,7 +78,7 @@ object NodesChestProtectionListener {
  */
 object NodesChestProtectionDestroyListener {
     private fun onBlockBreak(event: PlayerBlockBreakEvent) {
-        val town: Town? = Territory.fromBlock(Nodes.territoryChunks, event.blockPosition.blockX, event.blockPosition.blockZ)?.town
+        val town: Town? = Territory.fromBlock(event.blockPosition.blockX, event.blockPosition.blockZ)?.town
         val resident = Resident.fromPlayer(event.player)!!
 
         if (event.isCancelled || town == null || !town.protectedBlocks.contains(event.blockPosition)) {

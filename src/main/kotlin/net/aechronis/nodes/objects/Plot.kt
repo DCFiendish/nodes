@@ -67,7 +67,7 @@ class Plot(
             }
             for (chunkX in Math.floorDiv(plot.minX, 16)..Math.floorDiv(plot.maxX, 16)) {
                 for (chunkZ in Math.floorDiv(plot.minZ, 16)..Math.floorDiv(plot.maxZ, 16)) {
-                    if (Territory.fromCoord(Nodes.territoryChunks, Coord(chunkX, chunkZ))?.town !== town) {
+                    if (Territory.fromCoord(Coord(chunkX, chunkZ))?.town !== town) {
                         return "Every part of a plot must be inside your town's claimed territory"
                     }
                 }

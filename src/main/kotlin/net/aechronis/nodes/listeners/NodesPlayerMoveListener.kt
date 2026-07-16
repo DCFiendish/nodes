@@ -88,8 +88,8 @@ object NodesPlayerMoveListener {
 
     // handle player changing to new chunk
     private fun onPlayerMoveChunk(player: Player, resident: Resident, fromCoord: Coord, toCoord: Coord) {
-        val fromTerritory = Territory.fromCoord(Nodes.territoryChunks, fromCoord)
-        val toTerritory = Territory.fromCoord(Nodes.territoryChunks, toCoord)
+        val fromTerritory = Territory.fromCoord(fromCoord)
+        val toTerritory = Territory.fromCoord(toCoord)
 
         if (fromTerritory != null && toTerritory != null) {
             val toTown = toTerritory.town

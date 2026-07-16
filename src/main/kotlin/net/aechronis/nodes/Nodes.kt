@@ -295,7 +295,7 @@ object Nodes {
                 val incomes = HashMap<Town, MutableMap<Material, Double>>()
                 incomes[town] = own
                 town.territories.forEach { id ->
-                    val territory = Territory.fromId(territories, id) ?: return@forEach
+                    val territory = Territory.fromId(id) ?: return@forEach
                     val territoryIncome = mutableMapOf<Material, Double>()
                     territory.income.forEach { (material, amount) -> territoryIncome[material] = (territoryIncome[material] ?: 0.0) + amount }
                     territory.chunks.forEach { coord ->

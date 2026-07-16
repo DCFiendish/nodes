@@ -23,7 +23,7 @@ object ArgumentResident {
                 }
         }
         return word.map { input ->
-            Resident.fromName(Nodes.residents.values, input)
+            Resident.fromName(input)
                 ?: throw ArgumentSyntaxException("Resident not found", input, 1)
         }
     }

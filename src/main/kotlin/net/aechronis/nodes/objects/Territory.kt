@@ -10,6 +10,7 @@ package net.aechronis.nodes.objects
 import com.google.gson.JsonObject
 import net.aechronis.nodes.Message
 import net.aechronis.nodes.Nodes
+import net.aechronis.nodes.Nodes.territories
 import net.aechronis.nodes.utils.ChatColor
 import net.minestom.server.MinecraftServer
 import net.minestom.server.command.CommandSender
@@ -318,15 +319,15 @@ data class Territory(
     companion object {
         fun count(): Int = Nodes.territories.size
 
-        fun fromId(territories: Map<TerritoryId, Territory>, id: TerritoryId): Territory? = territories[id]
+        fun fromId(id: TerritoryId): Territory? = territories[id]
 
-        fun fromCoord(chunks: Map<Coord, TerritoryChunk>, coord: Coord): Territory? = chunks[coord]?.territory
+        fun fromCoord(coord: Coord): Territory? = Nodes.territoryChunks[coord]?.territory
 
-        fun fromBlock(chunks: Map<Coord, TerritoryChunk>, blockX: Int, blockZ: Int): Territory? = fromCoord(chunks, Coord.fromBlockCoords(blockX, blockZ))
+        fun fromBlock(blockX: Int, blockZ: Int): Territory? = fromCoord(Coord.fromBlockCoords(blockX, blockZ))
 
         fun fromPlayer(player: net.minestom.server.entity.Player): Territory? {
             val position = player.position
-            return fromCoord(Nodes.territoryChunks, Coord.fromBlockCoords(position.x.toInt(), position.z.toInt()))
+            return fromCoord(Coord.fromBlockCoords(position.x.toInt(), position.z.toInt()))
         }
 
         fun defaultSpawnLocation(territory: Territory): Pos {

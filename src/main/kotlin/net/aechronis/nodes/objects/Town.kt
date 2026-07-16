@@ -122,8 +122,8 @@ class Town(
             protectedBlocks: HashSet<BlockVec>,
             plots: ArrayList<Plot.PlotSaveState> = arrayListOf(),
         ): Town? {
-            val leaderResident = leader?.let { Resident.fromUuid(Nodes.residents, it) }
-            val home = Territory.fromId(Nodes.territories, TerritoryId(homeId))
+            val leaderResident = leader?.let { Resident.fromUuid(it) }
+            val home = Territory.fromId(TerritoryId(homeId))
             if (home == null) {
                 System.err.println("Failed to create town $name with home (id = $homeId)")
                 return null
@@ -132,15 +132,15 @@ class Town(
             val town = Town(uuid, name, home.id, leaderResident, spawnpoint)
             leaderResident?.town = town
             residents.forEach { id ->
-                Resident.fromUuid(Nodes.residents, id)?.let { resident ->
+                Resident.fromUuid(id)?.let { resident ->
                     town.residents.add(resident)
                     resident.town = town
                     resident.needsUpdate()
                 }
             }
-            officers.forEach { id -> Resident.fromUuid(Nodes.residents, id)?.let { town.officers.add(it) } }
+            officers.forEach { id -> Resident.fromUuid(id)?.let { town.officers.add(it) } }
             territoryIds.forEach { id ->
-                val territory = Territory.fromId(Nodes.territories, TerritoryId(id))
+                val territory = Territory.fromId(TerritoryId(id))
                 if (territory != null) {
                     town.territories.add(territory.id)
                     territory.town = town
@@ -152,7 +152,7 @@ class Town(
             }
             capturedTerritoryIds.forEach { id ->
                 val territoryId = TerritoryId(id)
-                Territory.fromId(Nodes.territories, territoryId)?.let { territory ->
+                Territory.fromId(territoryId)?.let { territory ->
                     territory.occupier?.captured?.remove(territoryId)
                     town.captured.add(territoryId)
                     territory.occupier = town
@@ -183,8 +183,8 @@ class Town(
             if (nation != null) {
                 if (nation.towns.size == 1) Nation.destroy(nation) else Nation.removeTown(nation, town)
             }
-            town.territories.forEach { Territory.fromId(Nodes.territories, it)?.town = null }
-            town.captured.forEach { Territory.fromId(Nodes.territories, it)?.occupier = null }
+            town.territories.forEach { Territory.fromId(it)?.town = null }
+            town.captured.forEach { Territory.fromId(it)?.occupier = null }
             town.residents.forEach { resident ->
                 resident.town = null
                 resident.nation = null
@@ -259,7 +259,7 @@ class Town(
         }
 
         fun setSpawn(town: Town, spawnpoint: Pos): Boolean {
-            val territory = Territory.fromBlock(Nodes.territoryChunks, spawnpoint.blockX(), spawnpoint.blockZ())
+            val territory = Territory.fromBlock(spawnpoint.blockX(), spawnpoint.blockZ())
             if (territory == null || territory.id != town.home) return false
             town.spawnpoint = spawnpoint
             town.needsUpdate()

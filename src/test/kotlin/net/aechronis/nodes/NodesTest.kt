@@ -134,7 +134,7 @@ class NodesTest {
     @Test
     fun `can create a new town`() {
         // territory without a town
-        val territory = Territory.fromId(Nodes.territories, TerritoryId(18248))
+        val territory = Territory.fromId(TerritoryId(18248))
         assertNotNull(territory, "Territory should exist")
 
         val result = Town.create("Birmingham", territory, null)

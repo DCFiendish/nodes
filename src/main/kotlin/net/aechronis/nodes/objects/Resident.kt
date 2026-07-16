@@ -10,6 +10,7 @@ package net.aechronis.nodes.objects
 
 import net.aechronis.nodes.Message
 import net.aechronis.nodes.Nodes
+import net.aechronis.nodes.Nodes.residents
 import net.aechronis.nodes.chat.ChatMode
 import net.aechronis.nodes.serdes.SaveState
 import net.aechronis.nodes.utils.ChatColor
@@ -44,13 +45,13 @@ class Resident(val uuid: UUID, val name: String) {
 
         fun fromPlayer(player: Player): Resident? = Nodes.residents[player.uuid]
 
-        fun fromName(residents: Collection<Resident>, name: String): Resident? {
+        fun fromName(name: String): Resident? {
             val player = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name)
-            if (player != null) return residents.firstOrNull { it.uuid == player.uuid }
-            return residents.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            if (player != null) return residents.values.firstOrNull { it.uuid == player.uuid }
+            return residents.values.firstOrNull { it.name.equals(name, ignoreCase = true) }
         }
 
-        fun fromUuid(residents: Map<UUID, Resident>, uuid: UUID): Resident? = residents[uuid]
+        fun fromUuid(uuid: UUID): Resident? = residents[uuid]
 
         fun setOnline(resident: Resident, player: Player) {
             resident.town?.let { town ->

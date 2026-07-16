@@ -93,7 +93,7 @@ object NodesWorldListener {
             }
         }
 
-        val territory: Territory? = Territory.fromBlock(Nodes.territoryChunks, blockPos.blockX, blockPos.blockZ)
+        val territory: Territory? = Territory.fromBlock(blockPos.blockX, blockPos.blockZ)
         val town: Town? = territory?.town
         val resident = Resident.fromPlayer(player)
 
@@ -205,7 +205,9 @@ object NodesWorldListener {
                             } else {
                                 when (result.exceptionOrNull()) {
                                     ErrorNoTerritory -> Message.error(player, "[War] There is no territory here")
+
                                     ErrorAlreadyUnderAttack -> Message.error(player, "[War] Chunk already under attack")
+
                                     ErrorAlreadyCaptured -> Message.error(
                                         player,
                                         "[War] Chunk already captured by town or allies",
@@ -222,7 +224,9 @@ object NodesWorldListener {
                                     )
 
                                     ErrorNotEnemy -> Message.error(player, "[War] Chunk does not belong to an enemy")
+
                                     ErrorAnnexDisabled -> Message.error(player, "[War] Territory annexing is disabled")
+
                                     ErrorNotBorderTerritory -> Message.error(
                                         player,
                                         "[War] You can only attack border territories",
@@ -239,6 +243,7 @@ object NodesWorldListener {
                                     )
 
                                     ErrorSkyBlocked -> Message.error(player, "[War] Flag must see the sky")
+
                                     ErrorTooManyAttacks -> Message.error(
                                         player,
                                         "[War] You cannot attack any more chunks at the same time",
@@ -259,7 +264,7 @@ object NodesWorldListener {
             }
         }
 
-        val territory: Territory? = Territory.fromBlock(Nodes.territoryChunks, blockPos.blockX, blockPos.blockZ)
+        val territory: Territory? = Territory.fromBlock(blockPos.blockX, blockPos.blockZ)
         val territoryChunk = TerritoryChunk.fromBlock(blockPos.blockX, blockPos.blockZ)
         val resident = Resident.fromPlayer(player)
         val town: Town? = territory?.town
@@ -328,7 +333,7 @@ object NodesWorldListener {
     private fun onBlockInteract(event: PlayerBlockInteractEvent) {
         if (event.isCancelled) return
 
-        val territory: Territory? = Territory.fromBlock(Nodes.territoryChunks, event.blockPosition.blockX, event.blockPosition.blockZ)
+        val territory: Territory? = Territory.fromBlock(event.blockPosition.blockX, event.blockPosition.blockZ)
         val territoryChunk = TerritoryChunk.fromBlock(event.blockPosition.blockX, event.blockPosition.blockZ)
         val resident = Resident.fromPlayer(event.player)
         val town: Town? = territory?.town
@@ -561,7 +566,7 @@ private fun handleHiddenOre(player: Player, block: BlockVec) {
     val blockZ = block.blockZ
     val blockY = block.blockY
 
-    val territory = Territory.fromBlock(Nodes.territoryChunks, blockX, blockZ)
+    val territory = Territory.fromBlock(blockX, blockZ)
 
     if (territory !== null) {
         val random = ThreadLocalRandom.current()
