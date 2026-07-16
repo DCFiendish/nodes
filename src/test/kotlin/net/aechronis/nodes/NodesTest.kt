@@ -8,16 +8,7 @@ import net.aechronis.nodes.objects.Territory
 import net.aechronis.nodes.objects.TerritoryId
 import net.aechronis.nodes.objects.Town
 import net.aechronis.nodes.war.FlagWar
-import net.kyori.adventure.bossbar.BossBar
-import net.kyori.adventure.text.Component
-import net.minestom.server.MinecraftServer
-import net.minestom.server.coordinate.Pos
-import net.minestom.server.entity.GameMode
-import net.minestom.server.event.EventNode
-import net.minestom.server.event.player.AsyncPlayerConfigurationEvent
-import net.minestom.server.event.player.PlayerBlockInteractEvent
-import net.minestom.server.event.player.PlayerSpawnEvent
-import net.minestom.server.event.server.ServerTickMonitorEvent
+import net.aechronis.utils.createTestServer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -25,10 +16,7 @@ import org.junit.jupiter.api.TestInstance
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.Comparator
 import java.util.UUID
-import kotlin.math.floor
-import kotlin.math.min
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -36,62 +24,10 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class NodesTest {
     private lateinit var tmpDir: Path
-    private var serverInitialized = false
 
     @BeforeAll
     fun setup() {
-        // start server
-        val server = MinecraftServer.init()
-        serverInitialized = true
-        server.start("0.0.0.0", 25565)
-
-        // create instance
-        val instance = MinecraftServer.getInstanceManager().createInstanceContainer()
-        instance.setGenerator(TestGenerator())
-
-        val eventNode = EventNode.all("test-node").setPriority(0)
-
-        MinecraftServer.getGlobalEventHandler().addChild(eventNode)
-
-        val bossBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS)
-
-        eventNode.addListener(AsyncPlayerConfigurationEvent::class.java) { event ->
-            val player = event.player
-            event.spawningInstance = instance
-            player.respawnPoint = Pos(27000.0, 60.0, 5700.0)
-            player.gameMode = GameMode.CREATIVE
-        }
-
-        eventNode.addListener(PlayerSpawnEvent::class.java) { event ->
-            event.player.showBossBar(bossBar)
-        }
-
-        eventNode.addListener(PlayerBlockInteractEvent::class.java) { event ->
-            if (!event.isCancelled) {
-                Message.print(event.player, "you would have just interacted")
-            } else {
-                Message.error(event.player, "interact event cancelled")
-            }
-        }
-
-        eventNode.addListener(ServerTickMonitorEvent::class.java) { e ->
-            val tickTime = floor(e.tickMonitor.tickTime * 100.0) / 100.0
-            val runtime = Runtime.getRuntime()
-            val usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024
-            val maxMemory = runtime.maxMemory() / 1024 / 1024
-
-            bossBar.name(
-                Component.text()
-                    .append(Component.text("MSPT: $tickTime | Mem: ${usedMemory}MB/${maxMemory}MB")),
-            )
-            bossBar.progress(min(tickTime / MinecraftServer.TICK_MS, 1.0).toFloat())
-
-            if (tickTime > MinecraftServer.TICK_MS) {
-                bossBar.color(BossBar.Color.RED)
-            } else {
-                bossBar.color(BossBar.Color.GREEN)
-            }
-        }
+        createTestServer()
 
         val dir = Paths.get(javaClass.getResource("/nodes/world.json")!!.toURI()).parent
         tmpDir = Files.createTempDirectory("nodes-test")
@@ -212,16 +148,10 @@ class NodesTest {
     }
 
     @AfterAll
-    fun tearDown() {
+    fun keepRunning() {
         // if -DkeepRunning=true is set keep server running for manual testing
         if (System.getProperty("keepRunning") == "true") {
             Thread.currentThread().join()
-        }
-        if (serverInitialized) MinecraftServer.stopCleanly()
-        if (::tmpDir.isInitialized) {
-            Files.walk(tmpDir).use { paths ->
-                paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
-            }
         }
     }
 }
